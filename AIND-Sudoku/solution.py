@@ -8,7 +8,10 @@ square_units = [cross(rs, cs) for rs in ('ABC','DEF','GHI') for cs in ('123','45
 unitlist = row_units + column_units + square_units
 
 # TODO: Update the unit list to add the new diagonal units
-unitlist = unitlist
+diagonal_unit1 = [r+c for r,c in zip(rows, cols)]
+diagonal_unit2 = [r+c for r,c in zip(reversed(rows), cols)]
+diagonal_units = [diagonal_unit1, diagonal_unit2]
+unitlist = unitlist + diagonal_units
 
 units = dict((s, [u for u in unitlist if s in u]) for s in boxes)
 peers = dict((s, set(sum(units[s],[]))-set([s])) for s in boxes)
@@ -42,7 +45,8 @@ def naked_twins(values):
     strategy repeatedly).
     """
     # TODO: Implement this function!
-    raise NotImplementedError
+    # raise NotImplementedError
+    pass
 
 
 def eliminate(values):
@@ -62,7 +66,15 @@ def eliminate(values):
         The values dictionary with the assigned values eliminated from peers
     """
     # TODO: Copy your code from the classroom to complete this function
-    raise NotImplementedError
+    # raise NotImplementedError
+    el_values = values
+    for k in values.keys():
+        if len(values[k]) == 1:
+            for p in peers[k]:
+                # if values[k] in values[p]:
+                assign_value(el_values, p, values[p].replace(values[k], ''))
+                # el_values[p] = values[p].replace(values[k], '')
+    return el_values
 
 
 def only_choice(values):
@@ -86,7 +98,15 @@ def only_choice(values):
     You should be able to complete this function by copying your code from the classroom
     """
     # TODO: Copy your code from the classroom to complete this function
-    raise NotImplementedError
+    # raise NotImplementedError
+    for unit in unitlist:
+        for digit in '123456789':
+            dplaces = [box for box in unit if digit in values[box]]
+            if len(dplaces) == 1:
+                assign_value(values, dplaces[0], digit)
+                # values[dplaces[0]] = digit
+    return values
+
 
 
 def reduce_puzzle(values):
@@ -104,7 +124,25 @@ def reduce_puzzle(values):
         no longer produces any changes, or False if the puzzle is unsolvable 
     """
     # TODO: Copy your code from the classroom and modify it to complete this function
-    raise NotImplementedError
+    # raise NotImplementedError
+    stalled = False
+    while not stalled:
+        # Check how many boxes have a determined value
+        solved_values_before = len([box for box in values.keys() if len(values[box]) == 1])
+
+        # Your code here: Use the Eliminate Strategy
+        values = eliminate(values)
+        # Your code here: Use the Only Choice Strategy
+        values = only_choice(values)
+        # Check how many boxes have a determined value, to compare
+        solved_values_after = len([box for box in values.keys() if len(values[box]) == 1])
+        # If no new values were added, stop the loop.
+        stalled = solved_values_before == solved_values_after
+        # Sanity check, return False if there is a box with zero available values:
+        if len([box for box in values.keys() if len(values[box]) == 0]):
+            return False
+    return values
+
 
 
 def search(values):
@@ -127,7 +165,22 @@ def search(values):
     and extending it to call the naked twins strategy.
     """
     # TODO: Copy your code from the classroom to complete this function
-    raise NotImplementedError
+    # raise NotImplementedError
+    # First, reduce the puzzle using the previous function
+    values = reduce_puzzle(values)
+    if values is False:
+        return False ## Failed earlier
+    if all(len(values[s]) == 1 for s in boxes): 
+        return values ## Solved!
+    # Choose one of the unfilled squares with the fewest possibilities
+    n,s = min((len(values[s]), s) for s in boxes if len(values[s]) > 1)
+    # Now use recurrence to solve each one of the resulting sudokus, and 
+    for value in values[s]:
+        new_sudoku = values.copy()
+        new_sudoku[s] = value
+        attempt = search(new_sudoku)
+        if attempt:
+            return attempt
 
 
 def solve(grid):
