@@ -46,7 +46,56 @@ def naked_twins(values):
     """
     # TODO: Implement this function!
     # raise NotImplementedError
-    pass
+    
+    # print('beginning values=')
+    # display(values)
+    
+    twins = list()
+    # Find twins
+    for k in values.keys():
+        if len(values[k]) == 2:
+            # Find its twin
+            twin = [box for box in peers[k] if values[box] == values[k]]
+            #assert (len(twin)==0) | (len(twin) == 1)
+            if len(twin) == 1:
+                twins.append( tuple( sorted( (k, twin[0]) ) ) )
+
+    # Select unique pairs of twins only
+    twins = list(set(twins))
+    # print('unique_twins=', unique_twins)
+
+    # Pass through all twins to eliminate values in their peers
+    new_values = values.copy()
+    for twins in twins:
+        # Find the unit that contains both of the twins
+        all_peers = [u for u in unitlist if (twins[0] in u) & (twins[1] in u)]
+        # print('twins=', twins)
+        # print('all_peers=', all_peers)
+        for peer_unit in all_peers:
+            p_unit = peer_unit.copy()
+            p_unit.remove(twins[0])
+            p_unit.remove(twins[1])
+            # print('p_unit=', p_unit)
+
+            for p in p_unit:
+                for twin_value in values[twins[0]]:
+                    if twin_value in new_values[p]:
+                        # print('p=', p)
+                        # print('twin_value=', twin_value)
+                        # print('new_values=')
+                        # display(new_values)
+                        if len(new_values[p]) > 1:
+                            assign_value(new_values, p, new_values[p].replace(twin_value, ''))
+                        # print('new_values[p]=', new_values[p])
+            # print('values=')
+            # display(values)
+            # print('new_values=')
+            # display(new_values)
+    # print('new_values=')
+    # display(new_values)
+    return new_values
+
+
 
 
 def eliminate(values):
@@ -67,12 +116,12 @@ def eliminate(values):
     """
     # TODO: Copy your code from the classroom to complete this function
     # raise NotImplementedError
-    el_values = values
+    el_values = values.copy()
     for k in values.keys():
         if len(values[k]) == 1:
             for p in peers[k]:
                 # if values[k] in values[p]:
-                assign_value(el_values, p, values[p].replace(values[k], ''))
+                assign_value(el_values, p, el_values[p].replace(values[k], ''))
                 # el_values[p] = values[p].replace(values[k], '')
     return el_values
 
@@ -130,10 +179,13 @@ def reduce_puzzle(values):
         # Check how many boxes have a determined value
         solved_values_before = len([box for box in values.keys() if len(values[box]) == 1])
 
+        # Use Naked Twins Strategy
+        values = naked_twins(values)
         # Your code here: Use the Eliminate Strategy
         values = eliminate(values)
         # Your code here: Use the Only Choice Strategy
         values = only_choice(values)
+
         # Check how many boxes have a determined value, to compare
         solved_values_after = len([box for box in values.keys() if len(values[box]) == 1])
         # If no new values were added, stop the loop.
