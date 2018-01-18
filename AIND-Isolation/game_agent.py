@@ -34,8 +34,10 @@ def custom_score(game, player):
     float
         The heuristic value of the current game state to the specified player.
     """
-    # TODO: finish this function!
-    raise NotImplementedError
+    return mobility_score(game, player, 2.) \
+        + distance_score(game, player)
+        #+ 0.5*important_spaces_score(game, player)
+        #+ 0.5*immediate_spaces_score(game, player)
 
 
 def custom_score_2(game, player):
@@ -60,8 +62,7 @@ def custom_score_2(game, player):
     float
         The heuristic value of the current game state to the specified player.
     """
-    # TODO: finish this function!
-    raise NotImplementedError
+    return distance_score(game, player)
 
 
 def custom_score_3(game, player):
@@ -86,8 +87,68 @@ def custom_score_3(game, player):
     float
         The heuristic value of the current game state to the specified player.
     """
-    # TODO: finish this function!
-    raise NotImplementedError
+    return important_spaces_score(game, player)
+
+
+# score helper functions
+def mobility_score(game, player, weight_opp=1.):
+    # This heuristic takes the difference between available moves of
+    # computer player and its opponent.
+    if game.is_loser(player):
+        return float("-inf")
+
+    if game.is_winner(player):
+        return float("inf")
+
+    own_moves = len(game.get_legal_moves(player))
+    opp_moves = len(game.get_legal_moves(game.get_opponent(player)))
+    return float(own_moves) - weight_opp * float(opp_moves)
+
+
+def distance_score(game, player):
+    # This heuristic calculates the (squared) straight line distance between players
+    if game.is_loser(player):
+        return float("-inf")
+
+    if game.is_winner(player):
+        return float("inf")
+
+    x1, y1 = game.get_player_location(player)
+    x2, y2 = game.get_player_location(game.get_opponent(player))
+    distance = float((x1 - x2)**2 + (y1 - y2)**2)
+    return distance
+
+
+def immediate_spaces_score(game, player):
+    # This heuristic counts the number of blank spaces immediately next to
+    # the current location of the player
+    if game.is_loser(player):
+        return float("-inf")
+
+    if game.is_winner(player):
+        return float("inf")
+
+    x, y = game.get_player_location(player)
+    immediate_blank_spaces = len([(i, j) for (i, j) in game.get_blank_spaces()
+        if (abs(x-i) <= 1) or (abs(y-j) <= 1)])
+    return float(immediate_blank_spaces)
+
+
+def important_spaces_score(game, player):
+    if game.is_loser(player):
+        return float("-inf")
+
+    if game.is_winner(player):
+        return float("inf")
+
+    x, y = game.get_player_location(player)
+    # reflection point
+    new_x = (game.width/2.) - (x - game.width/2.)
+    new_y = (game.height/2.) - (y - game.height/2.)
+
+    reflection = (new_x, new_y) not in game.get_legal_moves(game.get_opponent(player))
+    centre = (0.5*(game.width-1), 0.5*(game.height-1)) not in game.get_legal_moves(game.get_opponent(player))
+    return float(reflection + centre)
 
 
 class IsolationPlayer:
@@ -212,8 +273,11 @@ class MinimaxPlayer(IsolationPlayer):
         if self.time_left() < self.TIMER_THRESHOLD:
             raise SearchTimeout()
 
-        min_vals = [(m, self.min_value(game.forecast_move(m), depth-1)) 
-            for m in game.get_legal_moves()]
+        moves = game.get_legal_moves()
+        if not moves:
+            return (-1, -1)
+
+        min_vals = [(m, self.min_value(game.forecast_move(m), depth-1)) for m in moves]
         best_m, best_val = max(min_vals, key = lambda x: x[1])
         return best_m
 
@@ -367,9 +431,13 @@ class AlphaBetaPlayer(IsolationPlayer):
         if self.time_left() < self.TIMER_THRESHOLD:
             raise SearchTimeout()
 
+        moves = game.get_legal_moves()
+        if not moves:
+            return (-1, -1)
+
         best_score = float("-inf")
-        best_move = (-1, -1)
-        for m in game.get_legal_moves():
+        best_move = moves[0]
+        for m in moves:
             val = self.min_value(game.forecast_move(m), depth-1, alpha, beta)
             if val > best_score:
                 best_score = val
